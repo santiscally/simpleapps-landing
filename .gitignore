@@ -1,0 +1,9 @@
+# Certificados SSL — nunca se commitean
+ssl/*.pem
+ssl/*.key
+ssl/*.crt
+
+# Sistema
+*.log
+.DS_Store
+Thumbs.db

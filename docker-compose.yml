@@ -1,0 +1,22 @@
+services:
+  simpleapps-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: simpleapps-landing:latest
+    container_name: simpleapps-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Certificados SSL. En el servidor, colocá aquí fullchain.pem y privkey.pem
+      # (podés reutilizar los del deploy anterior). Si está vacío, el contenedor
+      # genera un autofirmado de respaldo para arrancar igual.
+      - ./ssl:/etc/nginx/ssl
+    networks:
+      - simpleapps-network
+
+networks:
+  simpleapps-network:
+    driver: bridge
