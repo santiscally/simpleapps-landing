@@ -22,6 +22,9 @@
   --shadow-pop:0 16px 40px rgba(9,47,112,.16);
   --gutter:80px;
   --maxw:1440px;
+  /* Padding lateral que mantiene el contenido centrado a --maxw pero deja
+     el fondo de cada sección a todo el ancho (evita bordes blancos en desktop). */
+  --pad-x:max(var(--gutter), calc((100% - var(--maxw)) / 2 + var(--gutter)));
 }
 
 /* ============================================================
@@ -32,7 +35,7 @@ html{scroll-behavior:smooth;}
 body{margin:0;background:var(--white);font-family:var(--font-body);color:var(--navy-900);-webkit-font-smoothing:antialiased;}
 img{max-width:100%;display:block;}
 a{text-decoration:none;}
-.shell{max-width:var(--maxw);margin:0 auto;position:relative;overflow:hidden;}
+.shell{position:relative;overflow:hidden;}
 
 /* ============================================================
    BUTTONS
@@ -54,7 +57,7 @@ a{text-decoration:none;}
    HERO
    ============================================================ */
 .hero{position:relative;background:var(--surface);padding-bottom:0;}
-.hero__inner{padding:0 var(--gutter);}
+.hero__inner{position:relative;padding:0 var(--pad-x);}
 .hero__notch{position:absolute;bottom:0;right:0;width:6%;height:30px;background:#fff;
   clip-path:polygon(100% 0,100% 100%,0 100%);pointer-events:none;}
 
@@ -73,14 +76,40 @@ a{text-decoration:none;}
 
 .burger{display:none;width:44px;height:44px;border-radius:12px;border:1px solid rgba(9,47,112,.15);
   background:rgba(255,255,255,.6);align-items:center;justify-content:center;cursor:pointer;
-  color:var(--navy-900);font-size:24px;flex:0 0 auto;}
+  color:var(--navy-900);font-size:24px;flex:0 0 auto;
+  transition:background .28s ease,color .28s ease,border-color .28s ease,
+             transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .28s ease;}
+.burger:hover{box-shadow:0 6px 18px rgba(9,47,112,.18);}
+/* Al abrir: la manija toma el degradé azul->coral de la marca y rota */
+.burger[aria-expanded="true"]{color:#fff;border-color:transparent;transform:rotate(90deg);
+  background:linear-gradient(135deg,var(--navy-600),var(--coral-500));
+  box-shadow:0 8px 22px rgba(255,100,80,.35);}
+.burger i{transition:transform .4s cubic-bezier(.34,1.56,.64,1);}
+.burger[aria-expanded="true"] i{transform:scale(1.06);}
 
-.mobile-nav{display:none;border-radius:20px;margin-top:14px;background:rgba(255,255,255,.9);
-  border:1px solid rgba(9,47,112,.10);overflow:hidden;}
+/* Menú mobile: overlay tipo "glass" (iOS) que FLOTA sobre la página, no la empuja */
+.mobile-nav{position:absolute;left:var(--gutter);right:var(--gutter);margin-top:12px;z-index:40;
+  max-height:0;opacity:0;visibility:hidden;overflow:hidden;
+  border-radius:18px;border:1px solid rgba(255,255,255,.6);
+  background:rgba(255,255,255,.5);
+  -webkit-backdrop-filter:blur(18px) saturate(170%);
+  backdrop-filter:blur(18px) saturate(170%);
+  box-shadow:0 20px 44px rgba(9,47,112,.26);transform:translateY(-10px);
+  transition:max-height .38s cubic-bezier(.4,0,.2,1),opacity .3s ease,
+             transform .38s cubic-bezier(.4,0,.2,1),visibility .38s;}
+.mobile-nav.open{max-height:420px;opacity:1;visibility:visible;transform:translateY(0);}
 .mobile-nav a{display:block;font-family:var(--font-body);font-size:17px;color:var(--navy-900);
-  padding:16px 24px;border-bottom:1px solid rgba(9,47,112,.08);}
+  padding:15px 22px;border-bottom:1px solid rgba(9,47,112,.08);
+  opacity:0;transform:translateX(-14px);
+  transition:opacity .32s ease,transform .32s ease,background .2s ease,color .2s ease;}
 .mobile-nav a:last-child{border-bottom:none;}
-.mobile-nav.open{display:block;}
+.mobile-nav a:hover{background:rgba(17,90,214,.06);color:var(--navy-600);}
+/* Aparición escalonada de cada link al abrir */
+.mobile-nav.open a{opacity:1;transform:translateX(0);}
+.mobile-nav.open a:nth-child(1){transition-delay:.10s;}
+.mobile-nav.open a:nth-child(2){transition-delay:.16s;}
+.mobile-nav.open a:nth-child(3){transition-delay:.22s;}
+.mobile-nav.open a:nth-child(4){transition-delay:.28s;}
 
 .hero__grid{position:relative;display:grid;grid-template-columns:0.92fr 1.15fr;gap:44px;
   align-items:stretch;padding-top:56px;}
@@ -95,7 +124,7 @@ a{text-decoration:none;}
 /* ============================================================
    WHY CHOOSE
    ============================================================ */
-.why{position:relative;padding:96px var(--gutter) 0;}
+.why{position:relative;padding:96px var(--pad-x) 0;}
 .why__watermark{position:absolute;left:50%;top:40px;transform:translateX(-50%);
   font-family:var(--font-display);font-weight:700;font-size:120px;color:rgba(51,76,132,.12);
   pointer-events:none;letter-spacing:-4px;z-index:0;}
@@ -114,7 +143,7 @@ a{text-decoration:none;}
 /* ============================================================
    SERVICES (navy band)
    ============================================================ */
-.services{background:var(--navy-900);color:#fff;padding:88px var(--gutter);margin-top:64px;}
+.services{background:var(--navy-900);color:#fff;padding:88px var(--pad-x);margin-top:64px;}
 .services__title{margin:0 0 44px;font-family:var(--font-display);font-weight:400;font-size:32px;letter-spacing:.5px;}
 .services__title b{font-weight:700;}
 .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
@@ -146,7 +175,7 @@ a{text-decoration:none;}
 /* ============================================================
    FAQ
    ============================================================ */
-.faq{padding:88px var(--gutter);background:#fff;}
+.faq{padding:88px var(--pad-x);background:#fff;}
 .faq__panel{max-width:900px;margin:0 auto;}
 .faq__title{margin:0 0 8px;text-align:center;font-family:var(--font-display);font-weight:700;font-size:32px;letter-spacing:1px;color:var(--navy-900);}
 .faq__sub{margin:0 0 40px;text-align:center;font-family:var(--font-body);font-size:16px;line-height:22px;color:var(--gray-500);}
@@ -170,7 +199,7 @@ a{text-decoration:none;}
 /* ============================================================
    FOOTER
    ============================================================ */
-.footer{position:relative;background:var(--surface);padding:64px var(--gutter) 72px;
+.footer{position:relative;background:var(--surface);padding:64px var(--pad-x) 72px;
   clip-path:polygon(0 30px,94% 30px,100% 0,100% 100%,0 100%);}
 .footer__top{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}
 .footer__top h2{margin:0 0 8px;font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:1px;color:var(--ink);line-height:1.2;}
@@ -192,6 +221,8 @@ a{text-decoration:none;}
   :root{--gutter:48px;}
   .nav-pill{display:none;}
   .burger{display:inline-flex;}
+  /* En mobile/tablet solo la manija: se oculta el botón Contacto */
+  .topbar .btn--light{display:none;}
   .hero__grid{grid-template-columns:1fr;text-align:center;padding-top:36px;}
   .hero__art{max-width:360px;width:78%;order:-1;align-self:center;}
   .hero__title,.hero__p{margin-left:auto;margin-right:auto;}
@@ -202,7 +233,13 @@ a{text-decoration:none;}
   :root{--gutter:22px;}
   .topbar{padding-top:32px;}
   .logo{font-size:38px;}
-  .hero__title{font-size:32px;line-height:40px;letter-spacing:.5px;}
+  /* En mobile la ilustración de la compu se oculta y el hero respira más */
+  .hero__art{display:none;}
+  .hero{padding-bottom:38px;}
+  .hero__grid{padding-top:30px;}
+  .hero__title{font-size:27px;line-height:34px;letter-spacing:.3px;margin-bottom:16px;}
+  .hero__p{font-size:14px;line-height:20px;}
+  .hero__p--cta{margin-bottom:22px;}
   .services{padding:56px var(--gutter);}
   .steps{padding:32px 22px;}
   .faq{padding:48px var(--gutter);}
@@ -211,12 +248,27 @@ a{text-decoration:none;}
   .why{padding:64px var(--gutter) 0;}
   .why__row{grid-template-columns:1fr;}
   .why__watermark{font-size:84px;}
-  .rrss{grid-template-columns:1fr 1fr;}
+  /* Footer: 2x2 con cards chicas SOLO en mobile */
+  .rrss{grid-template-columns:1fr 1fr;gap:14px;}
+  .rrss-card{border-radius:18px;gap:14px;padding:18px;}
+  .rrss-card__head{gap:10px;}
+  .rrss-card__head i{font-size:24px;}
+  .rrss-card__head h4{font-size:16px;letter-spacing:.4px;}
+  .rrss-card .btn{height:40px;font-size:15px;}
   .track{flex-direction:column;gap:28px;}
   .track__line{display:none;}
   .step{align-items:flex-start;text-align:left;padding:0;}
-  .footer__top{flex-direction:column;gap:24px;}
+  /* Footer: encabezado más chico en mobile para que el logo quede a la derecha */
+  .footer__top{flex-direction:row;align-items:center;gap:14px;}
+  .footer__top h2{font-size:20px;letter-spacing:.5px;margin-bottom:4px;}
+  .footer__top p{font-size:13px;line-height:17px;}
 }
 @media(max-width:430px){
-  .rrss{grid-template-columns:1fr;}
+  .rrss{gap:10px;}
+  .rrss-card{padding:16px;border-radius:16px;}
+}
+
+/* Respeta usuarios que prefieren menos movimiento */
+@media(prefers-reduced-motion:reduce){
+  .burger,.burger i,.mobile-nav,.mobile-nav a{transition:none;}
 }

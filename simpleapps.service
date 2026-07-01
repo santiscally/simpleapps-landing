@@ -1,0 +1,11 @@
+[Unit]
+Description=SimpleApps Auto Start
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/simpleapps-landing/startup.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
