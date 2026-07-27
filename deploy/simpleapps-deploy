@@ -1,0 +1,44 @@
+#!/bin/bash
+# Publica el contenido de site/ en el webroot de nginx y recarga nginx.
+#
+# El webroot es /var/www/simpleapps.com.ar y NO /usr/share/nginx/html a proposito:
+# ese directorio pertenece al paquete nginx-common, y cada actualizacion de nginx
+# (unattended-upgrades) reescribe su index.html con la pagina "Welcome to nginx!".
+set -euo pipefail
+
+REPO_DIR=/home/simpleapps-landing
+SRC_DIR="$REPO_DIR/site"
+WEBROOT=/var/www/simpleapps.com.ar
+
+log() { echo "[simpleapps-deploy] $*"; }
+
+if [[ "${1:-}" == "--pull" ]]; then
+    log "git pull en $REPO_DIR"
+    git -C "$REPO_DIR" pull --ff-only
+fi
+
+if [[ ! -f "$SRC_DIR/index.html" ]]; then
+    log "ERROR: no existe $SRC_DIR/index.html — no publico nada"
+    exit 1
+fi
+
+mkdir -p "$WEBROOT" /var/www/certbot
+
+log "sincronizando $SRC_DIR/ -> $WEBROOT/"
+rsync -a --delete "$SRC_DIR/" "$WEBROOT/"
+chown -R www-data:www-data "$WEBROOT"
+find "$WEBROOT" -type d -exec chmod 755 {} +
+find "$WEBROOT" -type f -exec chmod 644 {} +
+
+log "validando configuracion de nginx"
+nginx -t
+
+if systemctl is-active --quiet nginx; then
+    log "recargando nginx"
+    systemctl reload nginx
+else
+    log "nginx no estaba activo — arrancando"
+    systemctl start nginx
+fi
+
+log "listo"

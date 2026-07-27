@@ -1,0 +1,117 @@
+#!/bin/bash
+# Verifica que simpleapps.com.ar este realmente servido y lo repara si no.
+#
+# Se ejecuta: al boot, cada 5 minutos (timer) y despues de cada operacion de apt/dpkg.
+# Escribe en el journal: journalctl -t simpleapps-healthcheck
+set -uo pipefail
+
+REPO_DIR=/home/simpleapps-landing
+WEBROOT=/var/www/simpleapps.com.ar
+MARKER='<title>Simple Apps'
+DEPLOY=/usr/local/bin/simpleapps-deploy
+
+log() { logger -t simpleapps-healthcheck "$*"; [[ "${QUIET:-0}" == "1" ]] || echo "[healthcheck] $*"; }
+
+[[ "${1:-}" == "--quiet" ]] && QUIET=1
+
+problems=()
+repaired=0
+
+# 1. nginx tiene que estar corriendo
+if ! systemctl is-active --quiet nginx; then
+    problems+=("nginx caido")
+    log "nginx no esta activo — arrancando"
+    systemctl start nginx && repaired=1
+fi
+
+# 2. nginx tiene que estar habilitado para arrancar al boot
+if ! systemctl is-enabled --quiet nginx; then
+    problems+=("nginx no habilitado al boot")
+    log "nginx no estaba enabled — habilitando"
+    systemctl enable nginx && repaired=1
+fi
+
+# 3. el vhost tiene que estar habilitado, y el sitio 'default' de nginx NO
+if [[ ! -e /etc/nginx/sites-enabled/simpleapps.com.ar ]]; then
+    problems+=("vhost no habilitado")
+    log "el vhost de simpleapps no estaba en sites-enabled — reinstalando"
+    install -m 0644 "$REPO_DIR/deploy/nginx/simpleapps.com.ar" /etc/nginx/sites-available/simpleapps.com.ar
+    ln -sfn /etc/nginx/sites-available/simpleapps.com.ar /etc/nginx/sites-enabled/simpleapps.com.ar
+    nginx -t 2>/dev/null && systemctl reload nginx && repaired=1
+fi
+
+if [[ -e /etc/nginx/sites-enabled/default ]]; then
+    # Choca con el 'default_server' del vhost de simpleapps: 'nginx -t' fallaria
+    # y un restart dejaria el sitio caido.
+    problems+=("reaparecio el sitio default de nginx")
+    log "sites-enabled/default reaparecio — lo saco"
+    rm -f /etc/nginx/sites-enabled/default
+    nginx -t 2>/dev/null && systemctl reload nginx && repaired=1
+fi
+
+# 4. el webroot tiene que tener el sitio real, no la pagina default de nginx
+if [[ ! -f "$WEBROOT/index.html" ]] || ! grep -q "$MARKER" "$WEBROOT/index.html" 2>/dev/null; then
+    problems+=("webroot sin el index real")
+    log "$WEBROOT/index.html falta o no es el sitio de Simple Apps — republicando"
+    "$DEPLOY" && repaired=1
+fi
+
+# 5. el contenido publicado tiene que coincidir con el repo
+if ! diff -rq "$REPO_DIR/site" "$WEBROOT" >/dev/null 2>&1; then
+    problems+=("webroot desincronizado del repo")
+    log "webroot difiere de $REPO_DIR/site — republicando"
+    "$DEPLOY" && repaired=1
+fi
+
+# 6. respuesta HTTP real (comprueba config + permisos + certificado local)
+# Con reintentos: justo despues de un 'nginx reload' los workers viejos pueden
+# contestar todavia con la config anterior.
+sirve_http() {
+    for _ in 1 2 3; do
+        curl -fsS --max-time 10 -H 'Host: simpleapps.com.ar' http://127.0.0.1/ 2>/dev/null \
+            | grep -q "$MARKER" && return 0
+        sleep 2
+    done
+    return 1
+}
+sirve_https() {
+    for _ in 1 2 3; do
+        curl -fsSk --max-time 10 --resolve simpleapps.com.ar:443:127.0.0.1 https://simpleapps.com.ar/ 2>/dev/null \
+            | grep -q "$MARKER" && return 0
+        sleep 2
+    done
+    return 1
+}
+
+if ! sirve_http; then
+    problems+=("HTTP no devuelve el sitio")
+    log "HTTP local no devuelve el sitio — revisando config y recargando nginx"
+    if nginx -t 2>/dev/null; then
+        systemctl reload nginx && repaired=1
+    else
+        log "ERROR: 'nginx -t' falla, no recargo. Salida:"
+        nginx -t 2>&1 | while read -r l; do log "  $l"; done
+    fi
+fi
+
+if ! sirve_https; then
+    problems+=("HTTPS no devuelve el sitio")
+    log "ADVERTENCIA: HTTPS local no devuelve el sitio"
+fi
+
+# 7. aviso si el certificado esta por vencer
+cert=/etc/letsencrypt/live/simpleapps.com.ar/fullchain.pem
+if [[ -f "$cert" ]]; then
+    if ! openssl x509 -checkend 1209600 -noout -in "$cert" >/dev/null 2>&1; then
+        problems+=("certificado vence en menos de 14 dias")
+        log "ADVERTENCIA: el certificado vence en menos de 14 dias — revisar 'certbot renew --dry-run'"
+    fi
+fi
+
+if [[ ${#problems[@]} -eq 0 ]]; then
+    [[ "${QUIET:-0}" == "1" ]] || echo "[healthcheck] OK — simpleapps.com.ar servido correctamente"
+    exit 0
+fi
+
+log "problemas detectados: ${problems[*]} (reparado=$repaired)"
+exit 0

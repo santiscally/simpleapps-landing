@@ -1,0 +1,16 @@
+[Unit]
+# Al arrancar el server, republica site/ en el webroot y asegura que nginx sirva.
+# NO hace git pull: publica exactamente lo que hay en el working tree del repo.
+Description=Publicar la landing de Simple Apps en el webroot de nginx
+Wants=network-online.target nginx.service
+After=network-online.target nginx.service
+ConditionPathExists=/home/simpleapps-landing/site/index.html
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/simpleapps-deploy
+ExecStartPost=/usr/local/bin/simpleapps-healthcheck
+
+[Install]
+WantedBy=multi-user.target

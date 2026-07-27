@@ -1,0 +1,7 @@
+[Unit]
+Description=Verificar y reparar el sitio simpleapps.com.ar
+After=nginx.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/simpleapps-healthcheck --quiet

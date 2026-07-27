@@ -1,0 +1,5 @@
+// Despues de cada operacion de apt/dpkg (incluido unattended-upgrades), revisa
+// que simpleapps.com.ar siga servido y lo repara si la actualizacion lo rompio.
+// Motivo historico: actualizar nginx reescribia /usr/share/nginx/html/index.html
+// con la pagina "Welcome to nginx!" y se caia la landing.
+DPkg::Post-Invoke { "if [ -x /usr/local/bin/simpleapps-healthcheck ]; then /usr/local/bin/simpleapps-healthcheck --quiet || true; fi"; };

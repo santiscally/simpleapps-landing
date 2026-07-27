@@ -1,0 +1,12 @@
+[Unit]
+Description=Chequeo periodico de simpleapps.com.ar (cada 5 min)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=30
+Persistent=true
+Unit=simpleapps-healthcheck.service
+
+[Install]
+WantedBy=timers.target

@@ -1,3 +1,7 @@
+# SOLO PARA PRUEBAS EN LOCAL.
+# En el VPS los puertos 80/443 los sirve el nginx NATIVO del sistema
+# (ver README → "Deploy en producción"). No correr 'docker compose up' ahí:
+# el contenedor no puede bindear los puertos y solo genera confusión.
 services:
   simpleapps-web:
     build:
